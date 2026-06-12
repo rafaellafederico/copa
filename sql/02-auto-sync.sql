@@ -20,10 +20,10 @@ select cron.schedule(
   '*/30 * * * *',
   $$
   select net.http_post(
-    url     := 'https://SEU_PROJETO.supabase.co/functions/v1/sync-copa',
+    url     := 'https://orfrakexhgmzapyoajka.supabase.co/functions/v1/sync-copa',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer SUA_ANON_KEY'
+      'Authorization', 'Bearer sb_publishable_Wo7ux33xnvMb1w39rItAMg_db4njGSl'
     ),
     body := '{}'::jsonb
   );
