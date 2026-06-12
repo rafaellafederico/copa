@@ -23,7 +23,7 @@ select cron.schedule(
     url     := 'https://orfrakexhgmzapyoajka.supabase.co/functions/v1/sync-copa',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer sb_publishable_Wo7ux33xnvMb1w39rItAMg_db4njGSl'
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9yZnJha2V4aGdtemFweW9hamthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjAwMjcsImV4cCI6MjA5Njc5NjAyN30.Ctga5NTwSnOe3f5N6r9SLcoZkgQltp-bfXLSODAC6no'
     ),
     body := '{}'::jsonb
   );
