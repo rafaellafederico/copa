@@ -172,9 +172,8 @@ function calcPoints(bet, m, s) {
   if (!bet || !hasResult(m)) return null;
   const exact = bet.home === m.res_home && bet.away === m.res_away;
   const outcome = Math.sign(bet.home - bet.away) === Math.sign(m.res_home - m.res_away);
-  let scorePts = exact ? s.pts_exact : (outcome ? s.pts_outcome : 0);
-  const cardPts = bet.cards === m.res_cards ? s.pts_cards : 0;
-  return { scorePts, cardPts, total: scorePts + cardPts, exact, outcome };
+  const scorePts = exact ? s.pts_exact : (outcome ? s.pts_outcome : 0);
+  return { scorePts, total: scorePts, exact, outcome };
 }
 
 /* ---------- AUTH ---------- */
@@ -249,10 +248,10 @@ async function saveBet(matchId) {
   const btn = $("save-" + matchId);
   const { error } = await sb.from("bets").upsert({
     user_id: me.id, match_id: matchId,
-    home: d.h, away: d.a, cards: d.c, updated_at: new Date().toISOString(),
+    home: d.h, away: d.a, cards: 0, updated_at: new Date().toISOString(),
   });
   if (error) { alert("Não foi possível salvar — o jogo pode já estar fechado."); await loadCore(); render(); return; }
-  myBets[matchId] = { user_id: me.id, match_id: matchId, home: d.h, away: d.a, cards: d.c };
+  myBets[matchId] = { user_id: me.id, match_id: matchId, home: d.h, away: d.a, cards: 0 };
   btn.textContent = "Palpite salvo ✓"; btn.classList.add("saved");
 }
 
@@ -318,14 +317,12 @@ function renderJogos() {
     if (!locked) {
       middle = `<div class="score-edit">${stepper("h|"+m.id, d.h, 15)}<span class="x">×</span>${stepper("a|"+m.id, d.a, 15)}</div>`;
       footer = `
-        <div class="cards-row"><span class="lbl">🟨 Cartões no jogo</span>${stepper("c|"+m.id, d.c, 20, true)}</div>
         <button class="btn-save ${bet ? "saved" : ""}" id="save-${m.id}" onclick="saveBet('${m.id}')">${bet ? "Palpite salvo ✓" : "Salvar palpite"}</button>`;
     } else {
       const sh = hasResult(m) ? m.res_home : (bet ? bet.home : "–");
       const sa = hasResult(m) ? m.res_away : (bet ? bet.away : "–");
       middle = `<div class="score-final"><span>${sh}</span><span class="x">×</span><span>${sa}</span></div>`;
-      const cardsShow = hasResult(m) ? m.res_cards : (bet ? bet.cards : "–");
-      footer = `<div class="cards-row"><span class="lbl">🟨 Cartões no jogo</span><span class="cards-final">${cardsShow}</span></div>`;
+      footer = ``;
 
       if (hasResult(m)) {
         if (bet) {
@@ -336,8 +333,6 @@ function renderJogos() {
               ${p.exact ? `<span class="bdg bdg-ok">✓ Placar exato +${settings.pts_exact}</span>`
                 : p.outcome ? `<span class="bdg bdg-ok">✓ Acertou o vencedor +${settings.pts_outcome}</span>`
                 : `<span class="bdg bdg-no">✗ Errou o resultado</span>`}
-              ${p.cardPts > 0 ? `<span class="bdg bdg-ok">✓ Cartões +${settings.pts_cards}</span>`
-                : `<span class="bdg bdg-no">✗ Cartões</span>`}
               <span class="bdg bdg-pts">+${p.total} PTS</span>
             </div>
           </div>`;
@@ -381,7 +376,7 @@ async function loadAllBets(mid) {
     return { name: names[b.user_id] || "?", b, pts: p ? p.total : 0 };
   }).sort((x, y) => y.pts - x.pts);
   box.innerHTML = rows.length
-    ? rows.map(r => `<div class="ab-row"><span>${esc(r.name)} — ${r.b.home}×${r.b.away} · ${r.b.cards} 🟨</span><span class="pts">+${r.pts}</span></div>`).join("")
+    ? rows.map(r => `<div class="ab-row"><span>${esc(r.name)} — ${r.b.home}×${r.b.away}</span><span class="pts">+${r.pts}</span></div>`).join("")
     : `<div style="opacity:.5;font-size:12px;padding:6px 0">ninguém palpitou.</div>`;
 }
 
@@ -412,7 +407,7 @@ async function renderRanking() {
       <div class="rk-sub">${r.exacts} placar(es) exato(s) · ${r.hits} vencedor(es)</div></span>
       <span class="rk-pts">${r.total}</span>
     </div>`).join("") : `<div class="empty">Ninguém cadastrado ainda.</div>`)
-    + `<div class="rules">Pontuação: placar exato +${settings.pts_exact} · acertou vencedor/empate +${settings.pts_outcome} · cartões exatos +${settings.pts_cards}. Desempate: mais placares exatos.</div>`;
+    + `<div class="rules">Pontuação: placar exato +${settings.pts_exact} · acertou vencedor/empate +${settings.pts_outcome}. Desempate: mais placares exatos.</div>`;
 }
 
 /* ---------- ADMIN ---------- */
@@ -429,7 +424,6 @@ function renderAdmin() {
     <div class="sec-title">Pontuação</div>
     <div class="scfg"><span>Placar exato</span><input class="inp" style="width:80px;margin:0;text-align:center" id="s-exact" type="number" value="${settings.pts_exact}"></div>
     <div class="scfg"><span>Acertou vencedor/empate</span><input class="inp" style="width:80px;margin:0;text-align:center" id="s-outcome" type="number" value="${settings.pts_outcome}"></div>
-    <div class="scfg"><span>Cartões exatos</span><input class="inp" style="width:80px;margin:0;text-align:center" id="s-cards" type="number" value="${settings.pts_cards}"></div>
     <button class="btn-big" onclick="saveSettings()">Salvar pontuação</button>`;
 }
 
@@ -444,9 +438,6 @@ function admCard(m) {
         <input class="inp" style="width:64px;margin:0;text-align:center" type="number" min="0" id="rh-${m.id}" value="${m.res_home ?? 0}">
         <span class="x">×</span>
         <input class="inp" style="width:64px;margin:0;text-align:center" type="number" min="0" id="ra-${m.id}" value="${m.res_away ?? 0}">
-      </div>
-      <div class="arow"><span>Cartões</span>
-        <input class="inp" style="width:64px;margin:0;text-align:center" type="number" min="0" id="rc-${m.id}" value="${m.res_cards ?? 0}">
       </div>
       <div class="abtns">
         <button class="btn-mini" onclick="setResult('${m.id}')">Lançar resultado</button>
@@ -467,8 +458,8 @@ window.addMatch = async () => {
   await loadCore(); renderAdmin();
 };
 window.setResult = async (id) => {
-  const res_home = +$("rh-" + id).value, res_away = +$("ra-" + id).value, res_cards = +$("rc-" + id).value;
-  const { error } = await sb.from("matches").update({ res_home, res_away, res_cards }).eq("id", id);
+  const res_home = +$("rh-" + id).value, res_away = +$("ra-" + id).value;
+  const { error } = await sb.from("matches").update({ res_home, res_away }).eq("id", id);
   if (error) { alert("Erro: " + error.message); return; }
   await loadCore(); renderAdmin();
 };
@@ -486,10 +477,10 @@ window.delMatch = async (id) => {
   await loadCore(); renderAdmin();
 };
 window.saveSettings = async () => {
-  const pts_exact = +$("s-exact").value, pts_outcome = +$("s-outcome").value, pts_cards = +$("s-cards").value;
-  const { error } = await sb.from("settings").update({ pts_exact, pts_outcome, pts_cards }).eq("id", 1);
+  const pts_exact = +$("s-exact").value, pts_outcome = +$("s-outcome").value;
+  const { error } = await sb.from("settings").update({ pts_exact, pts_outcome }).eq("id", 1);
   if (error) { alert("Erro: " + error.message); return; }
-  settings = { pts_exact, pts_outcome, pts_cards };
+  settings = { ...settings, pts_exact, pts_outcome };
   alert("Pontuação salva.");
 };
 

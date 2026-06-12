@@ -12,7 +12,6 @@ Site de bolão entre amigos para a Copa do Mundo 2026 (11/jun–19/jul). Cada pa
 
 - Placar exato: **+5**
 - Acertou só o vencedor (ou empate): **+3**
-- Total de cartões exato (amarelos + vermelhos somados): **+2**
 - Desempate no ranking: mais placares exatos.
 
 ## Banco (ver `sql/01-schema.sql`)
